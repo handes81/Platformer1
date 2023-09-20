@@ -1,35 +1,48 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class PlayerMovement : MonoBehaviour
 {
-    public float speed = 10f; // Kecepatan pemain, dapat diedit dari Unity
-    public LayerMask groundLayer; // Layer tanah
-    private Rigidbody2D rb;
-    private bool isGrounded;
+    [SerializeField] private float speed;
+    private Rigidbody2D body;
+    private Animator anim;
+    private bool grounded;
 
-    void Start()
+    private void Awake()
     {
-        rb = GetComponent<Rigidbody2D>();
+        //Grabs references for rigidbody and animator from game object.
+        body = GetComponent<Rigidbody2D>();
+        anim = GetComponent<Animator>();
     }
 
-    void Update()
+    private void Update()
     {
-        // Mendapatkan input horizontal (-1 untuk kiri, 1 untuk kanan)
         float horizontalInput = Input.GetAxis("Horizontal");
+        body.velocity = new Vector2(horizontalInput * speed, body.velocity.y);
 
-        // Menggerakkan pemain
-        Vector2 movement = new Vector2(horizontalInput * speed, rb.velocity.y);
-        rb.velocity = movement;
+        //Flip player when facing left/right.
+        if (horizontalInput > 0.01f)
+            transform.localScale = Vector3.one;
+        else if (horizontalInput < -0.01f)
+            transform.localScale = new Vector3(-1, 1, 1);
 
-        // Mengecek lompatan hanya jika pemain berada di atas tanah
-        isGrounded = Physics2D.Raycast(transform.position, Vector2.down, 1.4f, groundLayer);
+        if (Input.GetKey(KeyCode.Space) && grounded)
+            Jump();
 
-        if (isGrounded && Input.GetKey(KeyCode.Space))
-        {
-            // Ubah kecepatan vertikal untuk lompatan
-            rb.velocity = new Vector2(rb.velocity.x, 5f); // Ganti 5f dengan kekuatan lompatan yang diinginkan
-        }
+        //sets animation parameters
+        anim.SetBool("run", horizontalInput != 0);
+        anim.SetBool("grounded", grounded);
+    }
+
+    private void Jump()
+    {
+        body.velocity = new Vector2(body.velocity.x, speed);
+        anim.SetTrigger("jump");
+        grounded = false;
+    }
+
+    private void OnCollisionEnter2D(Collision2D collision)
+    {
+        if (collision.gameObject.tag == "Ground")
+            grounded = true;
     }
 }
